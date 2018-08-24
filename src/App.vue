@@ -1,29 +1,39 @@
 <template>
   <div id="app">
-    <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-    </div>
-    <router-view/>
+    <vue-app-launcher
+      :data="apps"
+      :icon-size="config.iconSize"
+      :padding-left="config.padding"
+      :padding-right="config.padding"
+      :padding-top="config.padding"
+      :padding-bottom="config.padding"
+      :allow-nesting="true"
+      :density="config.density"
+    ></vue-app-launcher>
   </div>
 </template>
 
-<style lang="less">
-#app {
-  font-family: 'Avenir', Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-}
-#nav {
-  padding: 30px;
-  a {
-    font-weight: bold;
-    color: #2c3e50;
-    &.router-link-exact-active {
-      color: #42b983;
+<script>
+import VueAppLauncher from './components/vue-app-launcher/'
+import apps from './apps'
+
+export default {
+  name: 'app',
+  components: { VueAppLauncher },
+  data () {
+    return {
+      apps,
+      config: {
+        iconSize: 80,
+        density: 1.4,
+        padding: 20
+      }
     }
   }
 }
+</script>
+
+<style lang="less">
+html, body, #app{margin: 0;height: 100%;}
+#app{background: rgb(21, 92, 173);}
 </style>
