@@ -17,31 +17,45 @@
       }"
       @webkitTransitionEnd="onPageMoveEnd"
       @transitionend="onPageMoveEnd">
-      <val-page
-        v-for="(page, index) in pages"
-        :key="index"
-        :index="index"
-        :page="page"
-        :pageIndex="pageIndex"
-        :iconSize="iconSize"
-        :colNumber="colNumber"
-        :rowNumber="rowNumber"
-        :pageWidth="pageWidth"
-        :pageHeight="pageHeight"
-        :paddingTop="paddingTop"
-        :paddingLeft="paddingLeft"
-        :paddingRight="paddingRight"
-        :paddingBottom="paddingBottom"
-        :moveX="moveX"
-        :moveY="moveY"
-        :isMousedown="isMousedown"
-        :isDragPage="isDragPage"
-        :isMovePage="isMovePage"
-        :isDragGrid="isDragGrid"
-        :isMoveGrid="isMoveGrid"
-        :moveGrid="moveGrid"
-        @start-drag="onStartDragGrid"
-      ></val-page>
+      <transition-group
+        tag="div"
+        class="val-grid-container"
+        v-for="(page, j) in pages"
+        v-if="((j - pageIndex) < 2 && (j - pageIndex) > -2 && isMovePage) || j === pageIndex"
+        v-on:before-enter="onDropGrid"
+        :key="j"
+        name="val-grid"
+        :style="{
+          width: pageWidth - paddingLeft - paddingRight + 'px',
+          height: pageHeight - paddingTop - paddingBottom + 'px',
+          left: paddingLeft + j * pageWidth + 'px',
+          top: paddingTop + 'px'
+        }">
+        <div class="val-grid"
+          v-for="grid in pages[j]"
+          :key="grid.id"
+          :style="{
+            width: 1 / colNumber * 100 + '%',
+            height: 1 / rowNumber * 100 + '%'
+          }"
+          @webkitTransitionEnd="isUpdatingGrid=false"
+          @transitionend="isUpdatingGrid=false">
+          <div
+            class="val-grid-content"
+            :class="{'val-grid-ctn-hide': moveGrid === grid}"
+            :style="{
+              width: iconSize + 'px',
+              height: iconSize + 26 + 'px',
+            }"
+            @mousedown="onDragGrid(grid, $event)"
+            @touchstart="onDragGrid(grid, $event)">
+            <div class="val-icon" :style="{ width: iconSize + 'px', height: iconSize + 'px'}">
+              <img class="val-icon-img" :src="grid.icon" draggable="false">
+            </div>
+            <div class="val-name" :style="{ width: iconSize + 'px' }">{{grid.name}}</div>
+          </div>
+        </div>
+      </transition-group>
     </div>
     <!-- dragging grid -->
     <div
@@ -82,11 +96,9 @@
 
 <script>
 import chunk from './utils/chunk'
-import ValPage from './page'
 
 export default {
   name: 'vue-app-launcher',
-  components: { ValPage },
   props: {
     data: { type: Array, default: () => [] },
     maxColumn: Number,
@@ -123,6 +135,7 @@ export default {
       isMovePage: false,
       isDragGrid: false,
       isMoveGrid: false,
+      isUpdatingGrid: false,
       moveGridToX: 0,
       moveGridToY: 0
     }
@@ -254,18 +267,26 @@ export default {
       this.pageIndex += 1
     },
     // start drag grid
-    onStartDragGrid (grid) {
-      this.isDragGrid = true
-      this.isMoveGrid = true
-      this.moveGrid = grid
-      let gridMousePosition = this.getGridMousePosition(grid)
-      this.layerX = gridMousePosition.x
-      this.layerY = gridMousePosition.y
-      let moveToPos = this.getGridPosition(grid)
-      this.moveGridToX = moveToPos.x
-      this.moveGridToY = moveToPos.y
+    onDragGrid (grid, e) {
+      e.preventDefault()
+      this.isMousedown = true
+      setTimeout(() => {
+        // start drag
+        if (this.isMousedown && Math.abs(this.moveX) < 10 && Math.abs(this.moveY) < 10) {
+          this.isDragGrid = true
+          this.isMoveGrid = true
+          this.moveGrid = grid
+          let gridMousePosition = this.getGridMousePosition(grid)
+          this.layerX = gridMousePosition.x
+          this.layerY = gridMousePosition.y
+          let moveToPos = this.getGridPosition(grid)
+          this.moveGridToX = moveToPos.x
+          this.moveGridToY = moveToPos.y
+        }
+      }, 200)
     },
     onDraggingGrid (grid) {
+      if (this.isUpdatingGrid) return
       let { moveGridX, moveGridY, gridWidth, gridHeight, pages, pageIndex } = this
       let gridCenterX = moveGridX + gridWidth / 2 // center x of dragging grid
       let gridCenterY = moveGridY + gridHeight / 2 // center y of ...
@@ -282,11 +303,14 @@ export default {
       }
       if (dropGrid && dropGrid !== this.willDropGrid) {
         this.willDropGrid = dropGrid || grid
-        this.updateLayout()
+        setTimeout(() => {
+          if (this.willDropGrid === dropGrid) this.updateLayout()
+        }, 300)
       }
     },
     onDropGrid () {
       this.willDropGrid = null
+      this.isUpdatingGrid = false
     },
     onGridMoveEnd (e) {
       this.isMoveGrid = false
@@ -310,10 +334,12 @@ export default {
       }
     },
     updateLayout () {
+      if (this.isUpdatingGrid) return
       let { data, moveGrid, willDropGrid, gridCount } = this
       let index1 = data.indexOf(moveGrid)
       let index2 = data.indexOf(willDropGrid)
       if (index1 === index2) return
+      this.isUpdatingGrid = true
       let { x, y } = this.getGridPosition(willDropGrid)
       this.moveGridToX = x
       this.moveGridToY = y
@@ -329,11 +355,13 @@ export default {
 .vue-app-launcher{
   position: relative;width: 100%;height: 100%;box-sizing: border-box;
   .val-content, .val-page{position: absolute;width: 100%;height: 100%;overflow: hidden;}
-  .val-page{transition: transform .3s cubic-bezier(0.1, 0.4, 0.53, 0.93);}
+  .val-page{transition: transform .4s cubic-bezier(0.1, 0.4, 0.53, 0.93);}
   .val-grid-container{position: absolute;display: flex;flex-wrap: wrap;align-content: flex-start;}
-  .val-grid{display: inline-flex;box-sizing: border-box;align-items: center;justify-content: center;color: #fff;transition: none;
-    // border: 1px solid rgba(255, 255, 255, 0.05);
+  .val-grid{display: inline-flex;box-sizing: border-box;
+    align-items: center;justify-content: center;color: #fff;transition: none;
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
+  // .val-icon{background: rgba(255, 255, 255, .2);}
   .val-icon-img{width: 100%;}
   .val-name{text-align: center;white-space: nowrap;overflow: hidden;text-overflow: ellipsis;font-size: 14px;height: 26px;line-height: 1em;padding: 6px 0;box-sizing: border-box;}
   .val-pagination{display: flex;align-items: center;justify-content: center;position: absolute;width: 100%;height: 10px;left: 0;bottom: 30px;}
@@ -341,7 +369,7 @@ export default {
   .val-pagination-item-on{background: #fff;}
   .val-grid-content{transition: transform .3s, filter .3s;}
   .val-grid-draging{transform: scale(1.08);filter: brightness(0.7);}
-  .val-grid-ctn-hide{opacity: 0;}
+  .val-grid-ctn-hide{opacity: 0.6;}
   .val-grid-move{transition: transform .2s;}
   .val-grid-move-item{position: absolute;transition: all .2s;}
   // .val-move-grid{pointer-events: none;}

@@ -7,8 +7,9 @@
       :padding-right="config.padding"
       :padding-top="config.padding"
       :padding-bottom="config.padding"
-      :allow-nesting="true"
       :density="config.density"
+      show-pagination
+      allow-nesting
     ></vue-app-launcher>
   </div>
 </template>
@@ -24,9 +25,9 @@ export default {
     return {
       apps,
       config: {
-        iconSize: 80,
-        density: 1.4,
-        padding: 20
+        iconSize: 100,
+        density: 1.5,
+        padding: 10
       }
     }
   }
@@ -35,5 +36,9 @@ export default {
 
 <style lang="less">
 html, body, #app{margin: 0;height: 100%;}
-#app{background: rgb(21, 92, 173);}
+#app{
+  font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  // margin: 30px;
+  background: url('https://cdn.suwalls.com/wallpapers/abstract/blue-blur-29047-1920x1080.jpg') center / cover;}
+// .vue-app-launcher{}
 </style>
